@@ -1505,7 +1505,7 @@ mkdir -p data/ratings data/movies data/users data/directors
 curl -O http://files.grouplens.org/datasets/movielens/ml-100k.zip
 unzip -j -d data/movies ml-100k.zip ml-100k/u.item
 unzip -j -d data/ratings ml-100k.zip ml-100k/u.data
-unzip -j -d data/user ml-100k.zip ml-100k/u.user
+unzip -j -d data/users ml-100k.zip ml-100k/u.user
 rm ml-100k.zip
 curl ftp://ftp.fu-berlin.de/pub/misc/movies/database/directors.list.gz | gzcat > data/directors/directors.list
 ```
