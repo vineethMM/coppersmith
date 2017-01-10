@@ -20,7 +20,7 @@ import com.twitter.scalding.{Execution, TypedPipe}
 
 import org.joda.time.DateTime
 
-import org.scalacheck.{Arbitrary, Prop}, Arbitrary._, Prop.forAll
+import org.scalacheck.{Arbitrary, Prop, Gen}, Arbitrary._, Prop.forAll
 
 import scalaz.Scalaz._
 import scalaz.NonEmptyList
@@ -331,17 +331,19 @@ class HiveParquetSinkSpec extends ScaldingSinkSpec[HiveParquetSink[Eavt, (String
   implicit def arbSinkAndTime =
     Arbitrary(
       for {
-        dbName    <- hiveIdentifierGen
-        tablePath <- arbitrary[Path]
-        tableName <- hiveIdentifierGen
-        date      <- arbLocalDate.arbitrary
-        dateTime   = date.toDateTimeAtStartOfDay
+        dbName     <- hiveIdentifierGen
+        tablePath  <- arbitrary[Path]
+        tableName  <- hiveIdentifierGen
+        date       <- arbLocalDate.arbitrary
+        dateTime    = date.toDateTimeAtStartOfDay
+        mergeFiles <- Gen.option(Gen.choose(1, 20))
       } yield {
         val sink = HiveParquetSink[Eavt, (String, String, String)](
           dbName,
           tableName,
           new Path(dir, tablePath),
-          FixedSinkPartition.byDay[Eavt](dateTime)
+          FixedSinkPartition.byDay[Eavt](dateTime),
+          mergeFiles
         )(implicitly, eavtEnc, implicitly, implicitly)
         (sink, dateTime)
       }

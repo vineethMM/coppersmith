@@ -30,7 +30,8 @@ import CoppersmithStats.fromTypedPipe
   */
 case class HiveParquetSink[T <: ThriftStruct : Manifest : FeatureValueEnc, P : TupleSetter] private(
   table:         HiveTable[T, (P, T)],
-  partitionPath: Path
+  partitionPath: Path,
+  mergeFiles: Option[Int]
 ) extends FeatureSink {
   def write(features: TypedPipe[(FeatureValue[Value], FeatureTime)],
             metadataSet: MetadataSet[Any]): FeatureSink.WriteResult = {
@@ -38,7 +39,14 @@ case class HiveParquetSink[T <: ThriftStruct : Manifest : FeatureValueEnc, P : T
       if (committed) {
         Execution.from(Left(AttemptedWriteToCommitted(partitionPath)))
       } else {
-        val eavts = features.map(implicitly[FeatureValueEnc[T]].encode).withCounter("write.parquet")
+        val eavts = {
+          mergeFiles match {
+            // Force an additional MapReduce step, which reads the feature values from the previous step,
+            // and writes them to the given number of parquet part files.
+            case Some(n) => features.forceToDisk.groupBy(_._1.entity).withReducers(n).values
+            case None    => features
+          }
+        }.map(implicitly[FeatureValueEnc[T]].encode).withCounter("write.parquet")
         for {
           counters <- table.writeExecution(eavts)
           _        <- Execution.from(CoppersmithStats.logCounters(counters))
@@ -52,6 +60,17 @@ object HiveParquetSink {
   type DatabaseName = String
   type TableName    = String
 
+  /**
+    * Configure a parquet feature sink, accessible as a Hive table.
+    *
+    * @param dbName     Name of the (existing) hive database to use.
+    * @param tableName  Name of the hive table (will be created if it does not exist).
+    * @param tablePath  HDFS path where the table data will be written.
+    * @param partition  The partition of the table to create (must not exist).
+    * @param mergeFiles If `Some(N)` for an integer N, then ensure at most N part files
+    *                   are produced, by merging the part files output by feature generation.
+    *                   If `None`, don't merge.
+    */
   def apply[
     T <: ThriftStruct : Manifest : FeatureValueEnc,
     P : Manifest : PathComponents
@@ -59,7 +78,8 @@ object HiveParquetSink {
     dbName:    DatabaseName,
     tableName: TableName,
     tablePath: Path,
-    partition: FixedSinkPartition[T, P]
+    partition: FixedSinkPartition[T, P],
+    mergeFiles: Option[Int] = None
   ): HiveParquetSink[T, P] = {
     // Note: This needs to be explicitly specified so that the TupleSetter.singleSetter
     // instance isn't used (causing a failure at runtime).
@@ -74,6 +94,6 @@ object HiveParquetSink {
     val pathComponents = implicitly[PathComponents[P]].toComponents(partition.partitionValue)
     val partitionRelPath = new Path(partition.underlying.pattern.format(pathComponents: _*))
 
-    HiveParquetSink[T, P](hiveTable, new Path(tablePath, partitionRelPath))
+    HiveParquetSink[T, P](hiveTable, new Path(tablePath, partitionRelPath), mergeFiles)
   }
 }

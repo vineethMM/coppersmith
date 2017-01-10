@@ -38,6 +38,7 @@ In addition to this document, there is also a
     * [Generating features from custom scalding code](#generating-features-from-custom-scalding-code)
     * [Blank features](#blank-features)
     * [Generating metadata](#generating-metadata)
+    * [Avoiding small files](#avoiding-small-files)
     * [Testing](#testing)
 * [Try it yourself](#try-it-yourself)
     * [Setup](#setup)
@@ -1474,6 +1475,34 @@ to use a custom writer.
 
 The writer will only be invoked if features are successfully written
 to the underlying sink.
+
+
+### Avoiding small files
+
+The size of the data written by feature jobs (especially aggregation feature sets)
+may be significantly smaller than the size of the input.
+Small files (e.g. megabytes in size) are usually undesirable in the Hadoop environment.
+There are several ways to avoid this:
+
+1. Schedule a separate job to compact the part files.
+   For example, [herringbone](https://github.com/stripe/herringbone)
+   is a tool that can help with this.
+
+2. Configure the job to use fewer reducers (via Hadoop job configuration;
+   the coppersmith API itself does not provide a way to set this).
+   However if the source data is large, this may be infeasible
+   because it will increase the shuffle and reduce time.
+
+3. Set the `mergeFiles` parameter on `HiveParquetSink`.
+   This defaults to `None`.
+   Setting it to `Some(1)` will produce a single part file,
+   by adding an extra MapReduce step to the end of the coppersmith job
+   which merges the results of the feature generation phase.
+   Although this obviously adds to the overall runtime of the job,
+   in many cases it is faster than option 2,
+   as well as being much simpler and easier than option 1.
+   (Note: this parameter is not yet implemented for `HiveTextSink`).
+
 
 ### Testing
 
