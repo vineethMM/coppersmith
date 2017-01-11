@@ -20,6 +20,8 @@ import com.twitter.scalding.{Execution, TypedPipe}
 
 import org.joda.time.DateTime
 
+import org.specs2.scalacheck.Parameters
+
 import org.scalacheck.{Arbitrary, Prop, Gen}, Arbitrary._, Prop.forAll
 
 import scalaz.Scalaz._
@@ -55,6 +57,8 @@ abstract class ScaldingSinkSpec[T <: FeatureSink] extends ThermometerHiveSpec wi
       fails if sink is committed            $writeFailsIfSinkCommitted       ${tag("slow")}
       fails to commit if sink is committed  $commitFailsIfSinkCommitted      ${tag("slow")}
   """
+
+  implicit val params = Parameters(minTestsOk = 5)
 
   type SinkAndTime = (T, DateTime)
   implicit def arbSinkAndTime:   Arbitrary[SinkAndTime]
@@ -110,7 +114,7 @@ abstract class ScaldingSinkSpec[T <: FeatureSink] extends ThermometerHiveSpec wi
         TestLoggerFactory.getTestLogger("commbank.coppersmith.scalding.CoppersmithStats")
           .getAllLoggingEvents().toList must_== expectedLogs
       }
-    }}.set(minTestsOk = 5)
+    }}
 
   def multipleValueSetsOnDiskMatch =
     forAll { (vs1: NonEmptyList[FeatureValue[Value]],
@@ -137,7 +141,7 @@ abstract class ScaldingSinkSpec[T <: FeatureSink] extends ThermometerHiveSpec wi
           path(s"${tablePath(sink)}/*/*/*/[^_]*") ==> records(eavtReader, expected)
         )
       }
-    }}.set(minTestsOk = 5)
+    }}
 
   def featureValuesInHiveMatch =
     forAll { (vs: NonEmptyList[FeatureValue[Value]], sinkAndTime: SinkAndTime) => {
@@ -157,7 +161,7 @@ abstract class ScaldingSinkSpec[T <: FeatureSink] extends ThermometerHiveSpec wi
         val actual = executesSuccessfully(Execution.fromHive(Hive.query(query)))
         actual.toSet must_== expected.toSet
       }
-    }}.set(minTestsOk = 5)
+    }}
 
   def metadataOnDiskMatch =
     forAll { (vs: NonEmptyList[FeatureValue[Value]], sinkAndTime: SinkAndTime) =>  {
@@ -173,7 +177,7 @@ abstract class ScaldingSinkSpec[T <: FeatureSink] extends ThermometerHiveSpec wi
             RegularFeatures)
         )
       }
-    }}.set(minTestsOk = 5)
+    }}
 
   def json0MetadataOnDiskMatch =
     forAll { (vs: NonEmptyList[FeatureValue[Value]], sinkAndTime: SinkAndTime) =>  {
@@ -189,7 +193,7 @@ abstract class ScaldingSinkSpec[T <: FeatureSink] extends ThermometerHiveSpec wi
             RegularFeatures, MetadataOutput.Json0)
         )
       }
-    }}.set(minTestsOk = 5)
+    }}
 
   def expectedPartitionsMarkedSuccess =
     forAll { (vs: NonEmptyList[FeatureValue[Value]], sinkAndTime: SinkAndTime) =>  {
@@ -216,7 +220,7 @@ abstract class ScaldingSinkSpec[T <: FeatureSink] extends ThermometerHiveSpec wi
           }
         )
       }
-    }}.set(minTestsOk = 5)
+    }}
 
   def writeFailsIfSinkCommitted =
     forAll { (vs: NonEmptyList[FeatureValue[Value]], sinkAndTime: SinkAndTime) =>  {
@@ -245,7 +249,7 @@ abstract class ScaldingSinkSpec[T <: FeatureSink] extends ThermometerHiveSpec wi
           }
         )
       }
-    }}.set(minTestsOk = 5)
+    }}
 
   def commitFailsIfSinkCommitted =
     forAll { (vs: NonEmptyList[FeatureValue[Value]], sinkAndTime: SinkAndTime) =>  {
@@ -266,7 +270,7 @@ abstract class ScaldingSinkSpec[T <: FeatureSink] extends ThermometerHiveSpec wi
           }
         )
       }
-    }}.set(minTestsOk = 5)
+    }}
 
   private def metadataWritten(path: Path,
                               ems: MetadataSet[Any],

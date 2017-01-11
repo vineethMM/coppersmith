@@ -18,6 +18,8 @@ import org.joda.time.DateTime
 
 import com.twitter.scalding.{Config, Execution, TypedPipe}
 
+import org.specs2.scalacheck.Parameters
+
 import org.scalacheck.Arbitrary
 import org.scalacheck.Gen.alphaStr
 import org.scalacheck.Prop.forAll
@@ -52,6 +54,8 @@ class ScaldingJobSpec extends ThermometerHiveSpec with Records { def is = s2"""
     Running a multi feature set job
       writes feature values for par sets $multiFeatureSetJobPar ${tag("slow")}
   """
+
+  implicit val params = Parameters(minTestsOk = 5)
 
   {
     import java.util.logging.Logger
@@ -126,7 +130,7 @@ class ScaldingJobSpec extends ThermometerHiveSpec with Records { def is = s2"""
         facts(path(s"${sink.tablePath}/*/*/*/[^_]*") ==> records(eavtReader, expected))
 
       }
-    }}.set(minTestsOk = 5)
+    }}
 
   def aggregationFeaturesJob =
     forAll { (custAccts: CustomerAccounts, jobTime: DateTime) => {
@@ -140,7 +144,7 @@ class ScaldingJobSpec extends ThermometerHiveSpec with Records { def is = s2"""
         facts(metadataWritten(expected, List(AggregationFeatures)): _*)
         facts(path(s"${sink.tablePath}/*/*/*/[^_]*") ==> records(eavtReader, expected))
       }
-    }}.set(minTestsOk = 5)
+    }}
 
   def multiFeatureSetJobPar =
     forAll { (custAccts: CustomerAccounts, jobTime: DateTime) => {
@@ -159,7 +163,7 @@ class ScaldingJobSpec extends ThermometerHiveSpec with Records { def is = s2"""
         facts(metadataWritten(expected, List(RegularFeatures, AggregationFeatures)): _*)
         facts(path(s"${sink.tablePath}/*/*/*/[^_]*") ==> records(eavtReader, expected))
       }
-    }}.set(minTestsOk = 5)
+    }}
 
   def multiFeatureSetJobSeq =
     forAll { (custAccts: CustomerAccounts, jobTime: DateTime) => {
@@ -179,7 +183,7 @@ class ScaldingJobSpec extends ThermometerHiveSpec with Records { def is = s2"""
         facts(metadataWritten(expected, List(RegularFeatures, AggregationFeatures)): _*)
         facts(path(s"${sink.tablePath}/*/*/*/[^_]*") ==> records(eavtReader, expected))
       }
-    }}.set(minTestsOk = 5)
+    }}
 
   private def successFlagsWritten(expectedValues: List[Eavt], dateTime: DateTime): Seq[Fact] = {
     val partition = sink.partition.underlying

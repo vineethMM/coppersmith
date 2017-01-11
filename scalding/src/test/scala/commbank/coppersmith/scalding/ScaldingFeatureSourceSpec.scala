@@ -18,6 +18,8 @@ package scalding
 
 import com.twitter.scalding.typed._
 
+import org.specs2.scalacheck.Parameters
+
 import org.scalacheck.Arbitrary, Arbitrary.arbitrary
 import org.scalacheck.Prop.forAll
 
@@ -57,6 +59,8 @@ object ScaldingFeatureSourceSpec extends ThermometerSpec { def is = s2"""
     must apply filter withContext $multiwayJoinContextFilter ${tag("slow")}
 """
 
+  implicit val params = Parameters(minTestsOk = 5)
+
   // FIXME: Pull up to test project for use by client apps
   case class TestDataSource[T](testData: Iterable[T]) extends DataSource[T, TypedPipe] {
     def load = IterablePipe(testData)
@@ -69,14 +73,14 @@ object ScaldingFeatureSourceSpec extends ThermometerSpec { def is = s2"""
 
     val loaded = source.bind(from(TestDataSource(cs))).load
     runsSuccessfully(loaded) must_== cs.filter(filter)
-  }}.set(minTestsOk = 10)
+  }}
 
   def fromContext = forAll { (cs: List[Customer], ctx: String) => {
     val source = From[Customer].withContext[String]
 
     val loaded = source.bindWithContext(from(TestDataSource(cs)), ctx).load
     runsSuccessfully(loaded) must_== cs.map((_, ctx))
-  }}.set(minTestsOk = 10)
+  }}
 
   def fromContextFilter = forAll { (cs: List[Customer], ctx: Boolean) => {
     def filter(cb: (Customer, Boolean)) = cb._1.age < 18 || cb._2
@@ -84,7 +88,7 @@ object ScaldingFeatureSourceSpec extends ThermometerSpec { def is = s2"""
 
     val loaded = source.bindWithContext(from(TestDataSource(cs)), ctx).load
     runsSuccessfully(loaded) must_== cs.map((_, ctx)).filter(filter)
-  }}.set(minTestsOk = 10)
+  }}
 
   implicit val arbCustAccts: Arbitrary[CustomerAccounts] = arbCustomerAccounts(arbitrary[String])
 
@@ -97,7 +101,7 @@ object ScaldingFeatureSourceSpec extends ThermometerSpec { def is = s2"""
     val source = Join[Customer].to[Account].on(_.id, _.customerId).filter(filter)
     val bound = source.bind(join(TestDataSource(cas.map(_.c)), TestDataSource(cas.flatMap(_.as))))
     runsSuccessfully(bound.load).toSet must_== expected.toSet
-  }}.set(minTestsOk = 10)
+  }}
 
   def joinContext = forAll { (customerAccounts: CustomerAccounts, ctx: String) => {
     val cas = customerAccounts.cas
@@ -110,7 +114,7 @@ object ScaldingFeatureSourceSpec extends ThermometerSpec { def is = s2"""
       ctx
     )
     runsSuccessfully(bound.load).toSet must_== expected.toSet
-  }}.set(minTestsOk = 10)
+  }}
 
   def joinContextFilter = forAll { (customerAccounts: CustomerAccounts, ctx: Boolean) => {
     val cas = customerAccounts.cas
@@ -128,7 +132,7 @@ object ScaldingFeatureSourceSpec extends ThermometerSpec { def is = s2"""
       ctx
     )
     runsSuccessfully(bound.load).toSet must_== expected.toSet
-  }}.set(minTestsOk = 10)
+  }}
 
   def leftJoinFilter = forAll { (customerAccounts: CustomerAccounts) => {
     val cas = customerAccounts.cas
@@ -143,7 +147,7 @@ object ScaldingFeatureSourceSpec extends ThermometerSpec { def is = s2"""
     val source = Join.left[Customer].to[Account].on(_.id, _.customerId).filter(filter)
     val bound = source.bind(leftJoin(TestDataSource(cas.map(_.c)), TestDataSource(cas.flatMap(_.as))))
     runsSuccessfully(bound.load).toSet must_== expected.toSet
-  }}.set(minTestsOk = 10)
+  }}
 
   def leftJoinContext = forAll { (customerAccounts: CustomerAccounts, ctx: String) => {
     val cas = customerAccounts.cas
@@ -160,7 +164,7 @@ object ScaldingFeatureSourceSpec extends ThermometerSpec { def is = s2"""
       ctx
     )
     runsSuccessfully(bound.load).toSet must_== expected.toSet
-  }}.set(minTestsOk = 10)
+  }}
 
   def leftJoinContextFilter = forAll { (customerAccounts: CustomerAccounts, ctx: Boolean) => {
     val cas = customerAccounts.cas
@@ -182,7 +186,7 @@ object ScaldingFeatureSourceSpec extends ThermometerSpec { def is = s2"""
       ctx
     )
     runsSuccessfully(bound.load).toSet must_== expected.toSet
-  }}.set(minTestsOk = 10)
+  }}
 
   def multiwayJoin = forAll { (customerAccounts: CustomerAccounts) => {
     //shadow accidentally imported implicit
@@ -204,7 +208,7 @@ object ScaldingFeatureSourceSpec extends ThermometerSpec { def is = s2"""
 
     runsSuccessfully(bound.load).toSet must_== expected.toSet
 
-  }}.set(minTestsOk = 10)
+  }}
 
   def multiwayJoinFilter = forAll { (customerAccounts: CustomerAccounts) => {
     //shadow accidentally imported implicit
@@ -227,7 +231,7 @@ object ScaldingFeatureSourceSpec extends ThermometerSpec { def is = s2"""
 
     runsSuccessfully(bound.load).toSet must_== expected.toSet
 
-  }}.set(minTestsOk = 10)
+  }}
 
   def multiwayJoinContext = forAll { (customerAccounts: CustomerAccounts, ctx: String) => {
     val cas = customerAccounts.cas
@@ -244,7 +248,7 @@ object ScaldingFeatureSourceSpec extends ThermometerSpec { def is = s2"""
       ctx
     )
     runsSuccessfully(bound.load).toSet must_== expected.toSet
-  }}.set(minTestsOk = 10)
+  }}
 
   def multiwayJoinContextFilter = forAll { (customerAccounts: CustomerAccounts, ctx: Boolean) => {
     val cas = customerAccounts.cas
@@ -266,5 +270,5 @@ object ScaldingFeatureSourceSpec extends ThermometerSpec { def is = s2"""
       ctx
     )
     runsSuccessfully(bound.load).toSet must_== expected.toSet
-  }}.set(minTestsOk = 10)
+  }}
 }

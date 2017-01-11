@@ -15,6 +15,7 @@
 package commbank.coppersmith.scalding
 
 import org.specs2.execute._, Typecheck._
+import org.specs2.scalacheck.Parameters
 
 import org.scalacheck.Prop.forAll
 
@@ -38,10 +39,13 @@ import commbank.coppersmith.Arbitraries._
 
 class ScaldingDataSourceSpec extends ThermometerSpec { def is = s2"""
   ScaldingDataSource
-    should filter on `where` conditions      $where
-    should distinct by row on `distinct`     $distinct
-    should distinct by field on `distinctBy` $distinctBy
+    should filter on `where` conditions      $where      ${tag("slow")}
+    should distinct by row on `distinct`     $distinct   ${tag("slow")}
+    should distinct by field on `distinctBy` $distinctBy ${tag("slow")}
 """
+
+  implicit val params = Parameters(minTestsOk = 10)
+
   val where = forAll { xsList: List[(Int, Boolean)] =>
     // When ScalaCheck dependency (from uniform) is upgraded, this can be rewritten
     // to take an arbitrary Map[Int, Boolean] directly. ScalaCheck 1.11.4 contains a
@@ -60,7 +64,7 @@ class ScaldingDataSourceSpec extends ThermometerSpec { def is = s2"""
     runsSuccessfully(filteredDataSource.load) must containTheSameElementsAs(filteredRecs.toSeq)
   }
 
-  val distinct= forAll { xs: List[(Int, Boolean)] =>
+  val distinct = forAll { xs: List[(Int, Boolean)] =>
     val distinctRecs: Iterable[(Int, Boolean)] = xs.groupBy(x => x).mapValues(_.head).values
 
     object baseDataSource extends ScaldingDataSource[(Int, Boolean)] {
