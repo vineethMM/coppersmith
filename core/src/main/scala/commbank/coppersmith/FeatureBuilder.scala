@@ -145,12 +145,12 @@ case class AggregationFeatureBuilder[S, SV, T, FV <% V, V <: Value](
 ) {
   def andWhere(condition: SV => Boolean) = where(condition)
   def where(condition: SV => Boolean) = copy(view = view.andThenPartial { case s if condition(s) => s })
-  def having(condition: T => Boolean) =
+  def having(condition: FV => Boolean) =
     copy(aggregator =
       new Aggregator[SV, T, Option[FV]] {
         def prepare(s: SV) = aggregator.prepare(s)
         def semigroup = aggregator.semigroup
-        def present(t: T) = condition(t).option(aggregator.present(t)).flatten
+        def present(t: T) = aggregator.present(t).filter(condition)
       }
     )
 
