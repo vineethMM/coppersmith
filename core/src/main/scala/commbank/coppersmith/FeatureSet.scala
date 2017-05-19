@@ -202,17 +202,18 @@ object AggregationFeature {
       implicit val group = BigDAveragedGroup
       def numericAggregator[N](implicit num: Numeric[N]): MonoidAggregator[N, BigDAveragedValue, BigDecimal] =
         Aggregator.prepareMonoid { n: N => new BigDAveragedValue(1L, num.toDouble(n)) }
-          .andThenPresent(_.value)
+          .andThenPresent(sumAndCount => sumAndCount.sum / sumAndCount.count)
     }
 
-    case class BigDAveragedValue(count: Long, value: BigDecimal)
+    case class BigDAveragedValue(count: Long, sum: BigDecimal)
 
     object BigDAverager extends MonoidAggregator[BigDecimal, BigDAveragedValue, BigDecimal] {
       val monoid = BigDAveragedGroup
 
       def prepare(value: BigDecimal) = new BigDAveragedValue(1L, value)
 
-      def present(average: BigDAveragedValue) = average.value
+      def present(average: BigDAveragedValue) =
+        if(average.count != 0L) average.sum / average.count else 0.0
     }
 
     object BigDAveragedGroup extends Group[BigDAveragedValue] {
@@ -220,28 +221,10 @@ object AggregationFeature {
 
       override def isNonZero(av: BigDAveragedValue) = (av.count != 0L)
 
-      override def negate(av: BigDAveragedValue) = BigDAveragedValue(-av.count, av.value)
+      override def negate(av: BigDAveragedValue) = BigDAveragedValue(-av.count, av.sum)
 
-      def plus(cntAve1: BigDAveragedValue, cntAve2: BigDAveragedValue): BigDAveragedValue = {
-        val (big, small) = if (cntAve1.count >= cntAve2.count)
-          (cntAve1, cntAve2)
-        else
-          (cntAve2, cntAve1)
-        val n = big.count
-        val k = small.count
-        val newCnt = n + k
-        if (newCnt == n) {
-          // Handle zero without allocation
-          big
-        } else if (newCnt == 0L) {
-          zero
-        } else {
-          val an = big.value
-          val ak = small.value
-          val newAve = (n * an + k * ak) / newCnt
-          new BigDAveragedValue(newCnt, newAve)
-        }
-      }
+      def plus(cntAve1: BigDAveragedValue, cntAve2: BigDAveragedValue): BigDAveragedValue =
+        BigDAveragedValue(cntAve1.count + cntAve2.count, cntAve1.sum + cntAve2.sum)
     }
   }
 }

@@ -41,12 +41,12 @@ object AggregationSpec extends Specification with ScalaCheck {
     val bigDAvgValLists = nels.map(_.map(BigDAveragedValue(1L, _)))
     val bds = for (bds <- nels; bd <- bds) yield bd
 
-    val expected = BigDAveragedValue(bds.size, bds.list.sum / bds.size)
+    val expected = BigDAveragedValue(bds.size, bds.list.sum)
 
     val aggregationResults = bigDAvgValLists.map(plus)
     val actual = plus(aggregationResults)
 
-    actual.value must beCloseTo(expected.value +/- BigDecimal("0.0000000000000000001"))
+    actual must_== expected
   }}
 
   def plus(vals: NonEmptyList[BigDAveragedValue]) = {
